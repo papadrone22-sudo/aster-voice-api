@@ -1,0 +1,29 @@
+name: Deploy Hugging Face Space
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Sync to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone "https://Papdrone22:${HF_TOKEN}@huggingface.co/spaces/Papdrone22/aster-pocket-tts" /tmp/space
+          cp app.py requirements.txt README.md /tmp/space/
+          cd /tmp/space
+          git config user.name "Papdrone22"
+          git config user.email "papdrone22@gmail.com"
+          git add app.py requirements.txt README.md
+          if git diff --cached --quiet; then
+            echo "No changes to deploy"
+            exit 0
+          fi
+          git commit -m "Deploy Pocket TTS Indonesian"
+          git push origin main

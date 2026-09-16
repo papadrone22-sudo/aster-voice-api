@@ -5,21 +5,37 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Test generated duration
+      - name: Test reference-audio generation
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          pip install -q gradio_client soundfile
+          pip install -q gradio_client soundfile requests
           python - <<'PY'
-          import os, soundfile as sf
-          from gradio_client import Client
-          c=Client("https://papdrone22-aster-pocket-tts.hf.space", token=os.environ["HF_TOKEN"], verbose=False)
-          text="Halo, aku Aster. Bagaimana kabarmu hari ini? Semoga harimu menyenangkan dan semua pekerjaanmu berjalan lancar."
-          r=c.predict(text, None, api_name="/generate")
-          p=r[0]
-          a,sr=sf.read(p)
-          print("RESULT_STATUS=", r[1])
-          print("DURATION_SECONDS=", len(a)/sr)
+          import os
+          import requests
+          import soundfile as sf
+          from gradio_client import Client, handle_file
+
+          ref_url = "https://huggingface.co/kyutai/tts-voices/resolve/main/alba-mackenna/casual.wav"
+          ref_path = "/tmp/reference.wav"
+          r = requests.get(ref_url, timeout=60)
+          r.raise_for_status()
+          open(ref_path, "wb").write(r.content)
+
+          client = Client(
+              "https://papdrone22-aster-pocket-tts.hf.space",
+              token=os.environ["HF_TOKEN"],
+              verbose=False,
+          )
+          text = "Halo, aku Aster. Ini pengujian voice cloning menggunakan audio referensi agar hasil suara mengikuti karakter suara yang diberikan."
+          result = client.predict(text, handle_file(ref_path), api_name="/generate")
+          audio_path = result[0]
+          audio, sr = sf.read(audio_path)
+          duration = len(audio) / sr
+          print("RESULT_STATUS=", result[1])
+          print("DURATION_SECONDS=", duration)
           print("SAMPLE_RATE=", sr)
-          print("SAMPLES=", len(a))
+          print("SAMPLES=", len(audio))
+          if duration < 2.0:
+              raise RuntimeError(f"Reference-audio generation too short: {duration:.2f}s")
           PY

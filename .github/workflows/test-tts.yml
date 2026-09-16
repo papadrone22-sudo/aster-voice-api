@@ -13,7 +13,7 @@ jobs:
           python - <<'PY'
           import os, soundfile as sf
           from gradio_client import Client
-          c=Client("https://papdrone22-aster-pocket-tts.hf.space", hf_token=os.environ["HF_TOKEN"], verbose=False)
+          c=Client("https://papdrone22-aster-pocket-tts.hf.space", token=os.environ["HF_TOKEN"], verbose=False)
           text="Halo, aku Aster. Bagaimana kabarmu hari ini? Semoga harimu menyenangkan dan semua pekerjaanmu berjalan lancar."
           r=c.predict(text, None, api_name="/generate")
           p=r[0]

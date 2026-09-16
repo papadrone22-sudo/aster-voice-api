@@ -1,7 +1,7 @@
-import spaces
 import re
 import threading
 import gradio as gr
+import spaces
 from voxcpm import VoxCPM
 
 MODEL_ID = "openbmb/VoxCPM2"

@@ -1,4 +1,4 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
-pocket-tts==3.1.0
+pocket-tts
 scipy
 gradio>=6.27,<7

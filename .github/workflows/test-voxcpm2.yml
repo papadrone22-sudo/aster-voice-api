@@ -1,0 +1,53 @@
+name: Test VoxCPM2 Control
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test controllable voice cloning
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install -q gradio_client soundfile requests
+          python - <<'PY'
+          import os, requests, soundfile as sf
+          from gradio_client import Client, handle_file
+
+          ref = "/tmp/reference.wav"
+          r = requests.get("https://huggingface.co/kyutai/tts-voices/resolve/main/alba-mackenna/casual.wav", timeout=60)
+          r.raise_for_status()
+          open(ref, "wb").write(r.content)
+
+          client = Client(
+              "https://papdrone22-aster-voxcpm.hf.space",
+              token=os.environ["HF_TOKEN"],
+              verbose=False,
+          )
+          result = client.predict(
+              "Halo, aku Aster. Senang sekali bisa berbicara denganmu hari ini.",
+              handle_file(ref),
+              "warm, cheerful, expressive, slightly faster",
+              False,
+              "",
+              2.0,
+              10,
+              42,
+              api_name="/generate",
+          )
+          print("RESULT_STATUS=", result[1])
+          audio_value = result[0]
+          if isinstance(audio_value, dict):
+              path = audio_value.get("path") or audio_value.get("url")
+          else:
+              path = audio_value
+          audio, sr = sf.read(path)
+          print("DURATION_SECONDS=", len(audio) / sr)
+          print("SAMPLE_RATE=", sr)
+          print("SAMPLES=", len(audio))
+          PY

@@ -1,3 +1,4 @@
-voxcpm==2.0.3
+voxcpm
 gradio>=6,<7
+spaces
 soundfile

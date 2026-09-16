@@ -1,6 +1,8 @@
 import os
+import subprocess
 import tempfile
 import threading
+from pathlib import Path
 
 import gradio as gr
 import scipy.io.wavfile
@@ -29,9 +31,38 @@ def get_model():
     return _model
 
 
-def make_voice_state(model, reference_audio=None):
-    source = reference_audio if reference_audio else DEFAULT_VOICE
-    return model.get_state_for_audio_prompt(source, truncate=True)
+def prepare_reference_audio(reference_audio):
+    source = Path(reference_audio)
+    if not source.exists():
+        raise gr.Error("Audio referensi tidak ditemukan.")
+
+    fd, prepared_path = tempfile.mkstemp(prefix="aster_ref_", suffix=".wav")
+    os.close(fd)
+    command = [
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+        "-i", str(source), "-vn", "-ac", "1", "-ar", "24000",
+        "-t", "30", "-c:a", "pcm_s16le", prepared_path,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        if os.path.exists(prepared_path):
+            os.unlink(prepared_path)
+        raise gr.Error("Audio referensi tidak bisa dibaca. Gunakan WAV, MP3, M4A, atau format audio umum.")
+
+    sample_rate, samples = scipy.io.wavfile.read(prepared_path)
+    duration = float(samples.shape[0]) / float(sample_rate)
+    if duration < 1.5:
+        os.unlink(prepared_path)
+        raise gr.Error("Audio referensi terlalu pendek. Gunakan minimal 1,5 detik suara yang jelas.")
+
+    return prepared_path, duration
+
+
+def make_voice_state(model, voice_source, is_reference=False):
+    return model.get_state_for_audio_prompt(
+        Path(voice_source) if is_reference else voice_source,
+        truncate=False if is_reference else True,
+    )
 
 
 def generate_once(model, voice_state, text):
@@ -56,12 +87,17 @@ def generate_speech(text, reference_audio=None):
 
     model = get_model()
     mode = "Voice Clone" if reference_audio else "Voice Over"
+    prepared_reference = None
+    reference_duration = None
 
-    with _generate_lock:
-        # Always rebuild the voice state inside the ZeroGPU request.
-        # Cached model-state tensors can become stale across ZeroGPU allocations.
-        voice_state = make_voice_state(model, reference_audio)
-        audio_np, duration = generate_once(model, voice_state, text)
+    if reference_audio:
+        prepared_reference, reference_duration = prepare_reference_audio(reference_audio)
+
+    try:
+        with _generate_lock:
+            voice_source = prepared_reference if prepared_reference else DEFAULT_VOICE
+            voice_state = make_voice_state(model, voice_source, is_reference=bool(prepared_reference))
+            audio_np, duration = generate_once(model, voice_state, text)
 
         # The Indonesian model card reports occasional silent/near-silent generations
         # at EOS -6.0, while -4.0 had zero silent generations in its eval sweep.
@@ -69,22 +105,26 @@ def generate_speech(text, reference_audio=None):
         retried = False
         if len(text.split()) >= 3 and duration < 0.8:
             retried = True
-            original_eos = model.eos_threshold
-            try:
-                model.eos_threshold = FALLBACK_EOS
-                voice_state = make_voice_state(model, reference_audio)
-                retry_audio, retry_duration = generate_once(model, voice_state, text)
-                if retry_duration > duration:
-                    audio_np, duration = retry_audio, retry_duration
-            finally:
-                model.eos_threshold = original_eos
+                original_eos = model.eos_threshold
+                try:
+                    model.eos_threshold = FALLBACK_EOS
+                    voice_state = make_voice_state(model, voice_source, is_reference=bool(prepared_reference))
+                    retry_audio, retry_duration = generate_once(model, voice_state, text)
+                    if retry_duration > duration:
+                        audio_np, duration = retry_audio, retry_duration
+                finally:
+                    model.eos_threshold = original_eos
+    finally:
+        if prepared_reference and os.path.exists(prepared_reference):
+            os.unlink(prepared_reference)
 
     fd, output_path = tempfile.mkstemp(prefix="aster_tts_", suffix=".wav")
     os.close(fd)
     scipy.io.wavfile.write(output_path, model.sample_rate, audio_np)
 
     suffix = " • retry EOS -4" if retried else ""
-    return output_path, f"Selesai • {mode} • {duration:.2f} detik{suffix}"
+    ref_info = f" • ref {reference_duration:.1f} detik" if reference_duration else ""
+    return output_path, f"Selesai • {mode} • {duration:.2f} detik{ref_info}{suffix}"
 
 
 with gr.Blocks(title="Aster Pocket TTS") as demo:

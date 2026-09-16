@@ -1,0 +1,23 @@
+name: Debug VoxCPM2 Space
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/debug-voxcpm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Hugging Face CLI
+        run: pip install -U huggingface_hub
+      - name: Space logs
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: hf spaces logs -n 200 Papdrone22/aster-voxcpm --token "$HF_TOKEN"

@@ -9,7 +9,7 @@ from pocket_tts import TTSModel
 
 MODEL_CONFIG = "hf://anak10thn/pocket-tts-indonesian/indonesian_6l.yaml@17257664e384561c957b02ac92edd1a24807f0e5"
 DEFAULT_VOICE = "hf://kyutai/tts-voices/alba-mackenna/casual.wav"
-PRIMARY_EOS = -6.0
+PRIMARY_EOS = -4.0
 FALLBACK_EOS = -4.0
 
 _model = None

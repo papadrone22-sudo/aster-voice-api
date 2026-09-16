@@ -1,0 +1,25 @@
+name: Test Aster Pocket TTS
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test generated duration
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install -q gradio_client soundfile
+          python - <<'PY'
+          import os, soundfile as sf
+          from gradio_client import Client
+          c=Client("https://papdrone22-aster-pocket-tts.hf.space", hf_token=os.environ["HF_TOKEN"], verbose=False)
+          text="Halo, aku Aster. Bagaimana kabarmu hari ini? Semoga harimu menyenangkan dan semua pekerjaanmu berjalan lancar."
+          r=c.predict(text, None, api_name="/generate")
+          p=r[0]
+          a,sr=sf.read(p)
+          print("RESULT_STATUS=", r[1])
+          print("DURATION_SECONDS=", len(a)/sr)
+          print("SAMPLE_RATE=", sr)
+          print("SAMPLES=", len(a))
+          PY

@@ -2,15 +2,6 @@ import os
 import tempfile
 import threading
 
-try:
-    import spaces
-
-    @spaces.GPU(duration=1)
-    def _zerogpu_startup_probe():
-        return None
-except ImportError:
-    pass
-
 import gradio as gr
 import scipy.io.wavfile
 from pocket_tts import TTSModel
@@ -21,6 +12,7 @@ DEFAULT_VOICE = "hf://kyutai/tts-voices/alba-mackenna/casual.wav"
 _model = None
 _default_voice_state = None
 _model_lock = threading.Lock()
+_generate_lock = threading.Lock()
 
 
 def get_model():
@@ -28,38 +20,38 @@ def get_model():
     if _model is None:
         with _model_lock:
             if _model is None:
-                _model = TTSModel.load_model(config=MODEL_CONFIG, eos_threshold=-6.0)
+                _model = TTSModel.load_model(
+                    config=MODEL_CONFIG,
+                    eos_threshold=-6.0,
+                )
                 _default_voice_state = _model.get_state_for_audio_prompt(DEFAULT_VOICE)
     return _model
 
 
 def generate_speech(text, reference_audio=None):
-    try:
-        text = (text or "").strip()
-        if not text:
-            return None, "ERROR: Masukkan teks terlebih dahulu."
-        if len(text) > 2000:
-            return None, "ERROR: Maksimal 2000 karakter per generasi."
+    text = (text or "").strip()
+    if not text:
+        raise gr.Error("Masukkan teks terlebih dahulu.")
+    if len(text) > 2000:
+        raise gr.Error("Maksimal 2000 karakter per generasi.")
 
-        model = get_model()
-        if reference_audio:
-            voice_state = model.get_state_for_audio_prompt(reference_audio)
-            mode = "Voice Clone"
-        else:
-            global _default_voice_state
-            if _default_voice_state is None:
-                _default_voice_state = model.get_state_for_audio_prompt(DEFAULT_VOICE)
-            voice_state = _default_voice_state
-            mode = "Voice Over"
+    model = get_model()
+    if reference_audio:
+        voice_state = model.get_state_for_audio_prompt(reference_audio, truncate=True)
+        mode = "Voice Clone"
+    else:
+        global _default_voice_state
+        voice_state = _default_voice_state
+        mode = "Voice Over"
 
+    with _generate_lock:
         audio = model.generate_audio(voice_state, text)
-        audio_np = audio.detach().cpu().numpy()
-        fd, out_path = tempfile.mkstemp(prefix="aster_tts_", suffix=".wav")
-        os.close(fd)
-        scipy.io.wavfile.write(out_path, model.sample_rate, audio_np)
-        return out_path, f"Selesai • {mode} • {model.sample_rate} Hz"
-    except Exception as exc:
-        return None, f"ERROR: {type(exc).__name__}: {exc}"
+
+    audio_np = audio.detach().cpu().numpy().squeeze()
+    fd, output_path = tempfile.mkstemp(prefix="aster_tts_", suffix=".wav")
+    os.close(fd)
+    scipy.io.wavfile.write(output_path, model.sample_rate, audio_np)
+    return output_path, f"Selesai • {mode} • {model.sample_rate} Hz"
 
 
 with gr.Blocks(title="Aster Pocket TTS") as demo:

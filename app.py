@@ -1,3 +1,4 @@
+import spaces
 import os
 import tempfile
 import threading
@@ -28,6 +29,7 @@ def get_model():
     return _model
 
 
+@spaces.GPU(duration=60)
 def generate_speech(text, reference_audio=None):
     text = (text or "").strip()
     if not text:

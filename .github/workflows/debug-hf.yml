@@ -1,0 +1,15 @@
+name: Debug Hugging Face Space
+
+on:
+  workflow_dispatch:
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Hugging Face CLI
+        run: pip install -U huggingface_hub
+      - name: Fetch run logs
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: hf spaces logs -n 200 Papdrone22/aster-pocket-tts --token "$HF_TOKEN"

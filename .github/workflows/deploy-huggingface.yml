@@ -2,12 +2,11 @@ name: Deploy Hugging Face Space
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
+    branches: [main]
+    paths:
+      - app.py
+      - requirements.txt
+      - README.md
 
 jobs:
   deploy:
@@ -15,11 +14,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Hugging Face CLI
         run: pip install -U huggingface_hub
-
-      - name: Deploy Space files
+      - name: Deploy Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |

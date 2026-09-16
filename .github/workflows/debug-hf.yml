@@ -9,6 +9,10 @@ jobs:
     steps:
       - name: Install Hugging Face CLI
         run: pip install -U huggingface_hub
+      - name: Fetch build logs
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: hf spaces logs --build -n 300 Papdrone22/aster-pocket-tts --token "$HF_TOKEN"
       - name: Fetch run logs
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}

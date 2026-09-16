@@ -1,7 +1,7 @@
+import spaces
 import re
 import threading
 import gradio as gr
-import spaces
 from voxcpm import VoxCPM
 
 MODEL_ID = "openbmb/VoxCPM2"
@@ -27,7 +27,7 @@ def _clean_control(control: str) -> str:
     return re.sub(r"[()（）]", "", (control or "")).strip()
 
 
-@spaces.GPU(duration=180)
+@spaces.GPU(duration=120)
 def generate(
     text,
     reference_audio,

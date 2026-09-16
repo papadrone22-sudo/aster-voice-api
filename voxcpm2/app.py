@@ -1,23 +1,33 @@
 import re
+import threading
 import gradio as gr
 import spaces
 from voxcpm import VoxCPM
 
 MODEL_ID = "openbmb/VoxCPM2"
+_model = None
+_model_lock = threading.Lock()
 
-model = VoxCPM.from_pretrained(
-    MODEL_ID,
-    load_denoiser=False,
-    device="cuda",
-    optimize=False,
-)
+
+def get_model():
+    global _model
+    if _model is None:
+        with _model_lock:
+            if _model is None:
+                _model = VoxCPM.from_pretrained(
+                    MODEL_ID,
+                    load_denoiser=False,
+                    device="cuda",
+                    optimize=False,
+                )
+    return _model
 
 
 def _clean_control(control: str) -> str:
     return re.sub(r"[()（）]", "", (control or "")).strip()
 
 
-@spaces.GPU(duration=120)
+@spaces.GPU(duration=180)
 def generate(
     text,
     reference_audio,
@@ -35,6 +45,7 @@ def generate(
     control = _clean_control(control_instruction)
     transcript = (reference_transcript or "").strip()
     seed_value = int(seed) if seed is not None else None
+    model = get_model()
 
     kwargs = {
         "text": text,
@@ -65,14 +76,17 @@ def generate(
 
     wav = model.generate(**kwargs)
     sample_rate = model.tts_model.sample_rate
-    status = f"Selesai • {mode} • {sample_rate} Hz • {int(inference_timesteps)} steps • seed {seed_value}"
+    status = (
+        f"Selesai • {mode} • {sample_rate} Hz • "
+        f"{int(inference_timesteps)} steps • seed {seed_value}"
+    )
     return (sample_rate, wav), status
 
 
 with gr.Blocks(title="Aster VoxCPM2") as demo:
     gr.Markdown(
         "# Aster VoxCPM2 🎙️\n"
-        "Voice Cloning + Control Instruction + Ultimate Cloning"
+        "Voice Design + Controllable Voice Cloning + Ultimate Cloning"
     )
 
     text = gr.Textbox(
@@ -81,7 +95,7 @@ with gr.Blocks(title="Aster VoxCPM2") as demo:
         lines=5,
     )
     reference_audio = gr.Audio(
-        label="Reference Voice (opsional untuk Voice Design, wajib untuk cloning)",
+        label="Reference Voice",
         sources=["upload", "microphone"],
         type="filepath",
     )

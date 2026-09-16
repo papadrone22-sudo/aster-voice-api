@@ -1,3 +1,1 @@
-voxcpm
-gradio>=6,<7
-soundfile
+gradio==6.26.0

@@ -19,7 +19,10 @@ jobs:
       - name: Install Hugging Face CLI
         run: pip install -U huggingface_hub
 
-      - name: Deploy Space
+      - name: Deploy Space files
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: hf upload Papdrone22/aster-pocket-tts . . --repo-type space --token "$HF_TOKEN" --exclude ".git/*" ".github/*"
+        run: |
+          hf upload Papdrone22/aster-pocket-tts app.py app.py --repo-type space --token "$HF_TOKEN"
+          hf upload Papdrone22/aster-pocket-tts requirements.txt requirements.txt --repo-type space --token "$HF_TOKEN"
+          hf upload Papdrone22/aster-pocket-tts README.md README.md --repo-type space --token "$HF_TOKEN"

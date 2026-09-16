@@ -2,6 +2,15 @@ import os
 import tempfile
 import threading
 
+try:
+    import spaces
+
+    @spaces.GPU(duration=1)
+    def _zerogpu_startup_probe():
+        return None
+except ImportError:
+    pass
+
 import gradio as gr
 import scipy.io.wavfile
 from pocket_tts import TTSModel

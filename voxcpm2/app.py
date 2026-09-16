@@ -2,7 +2,6 @@ import re
 import threading
 import gradio as gr
 import spaces
-from voxcpm import VoxCPM
 
 MODEL_ID = "openbmb/VoxCPM2"
 _model = None
@@ -14,6 +13,7 @@ def get_model():
     if _model is None:
         with _model_lock:
             if _model is None:
+                from voxcpm import VoxCPM
                 _model = VoxCPM.from_pretrained(
                     MODEL_ID,
                     load_denoiser=False,

@@ -15,7 +15,7 @@ import gradio as gr
 import scipy.io.wavfile
 from pocket_tts import TTSModel
 
-MODEL_ID = "anak10thn/pocket-tts-indonesian"
+MODEL_CONFIG = "hf://anak10thn/pocket-tts-indonesian/indonesian_6l.yaml@17257664e384561c957b02ac92edd1a24807f0e5"
 DEFAULT_VOICE = "hf://kyutai/tts-voices/alba-mackenna/casual.wav"
 
 _model = None
@@ -28,7 +28,7 @@ def get_model():
     if _model is None:
         with _model_lock:
             if _model is None:
-                _model = TTSModel.load_model(MODEL_ID)
+                _model = TTSModel.load_model(config=MODEL_CONFIG, eos_threshold=-6.0)
                 _default_voice_state = _model.get_state_for_audio_prompt(DEFAULT_VOICE)
     return _model
 

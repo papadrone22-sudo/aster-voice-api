@@ -34,29 +34,32 @@ def get_model():
 
 
 def generate_speech(text, reference_audio=None):
-    text = (text or "").strip()
-    if not text:
-        raise gr.Error("Masukkan teks terlebih dahulu.")
-    if len(text) > 2000:
-        raise gr.Error("Maksimal 2000 karakter per generasi.")
+    try:
+        text = (text or "").strip()
+        if not text:
+            return None, "ERROR: Masukkan teks terlebih dahulu."
+        if len(text) > 2000:
+            return None, "ERROR: Maksimal 2000 karakter per generasi."
 
-    model = get_model()
-    if reference_audio:
-        voice_state = model.get_state_for_audio_prompt(reference_audio)
-        mode = "Voice Clone"
-    else:
-        global _default_voice_state
-        if _default_voice_state is None:
-            _default_voice_state = model.get_state_for_audio_prompt(DEFAULT_VOICE)
-        voice_state = _default_voice_state
-        mode = "Voice Over"
+        model = get_model()
+        if reference_audio:
+            voice_state = model.get_state_for_audio_prompt(reference_audio)
+            mode = "Voice Clone"
+        else:
+            global _default_voice_state
+            if _default_voice_state is None:
+                _default_voice_state = model.get_state_for_audio_prompt(DEFAULT_VOICE)
+            voice_state = _default_voice_state
+            mode = "Voice Over"
 
-    audio = model.generate_audio(voice_state, text)
-    audio_np = audio.detach().cpu().numpy()
-    fd, out_path = tempfile.mkstemp(prefix="aster_tts_", suffix=".wav")
-    os.close(fd)
-    scipy.io.wavfile.write(out_path, model.sample_rate, audio_np)
-    return out_path, f"Selesai • {mode} • {model.sample_rate} Hz"
+        audio = model.generate_audio(voice_state, text)
+        audio_np = audio.detach().cpu().numpy()
+        fd, out_path = tempfile.mkstemp(prefix="aster_tts_", suffix=".wav")
+        os.close(fd)
+        scipy.io.wavfile.write(out_path, model.sample_rate, audio_np)
+        return out_path, f"Selesai • {mode} • {model.sample_rate} Hz"
+    except Exception as exc:
+        return None, f"ERROR: {type(exc).__name__}: {exc}"
 
 
 with gr.Blocks(title="Aster Pocket TTS") as demo:

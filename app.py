@@ -105,15 +105,15 @@ def generate_speech(text, reference_audio=None):
         retried = False
         if len(text.split()) >= 3 and duration < 0.8:
             retried = True
-                original_eos = model.eos_threshold
-                try:
-                    model.eos_threshold = FALLBACK_EOS
-                    voice_state = make_voice_state(model, voice_source, is_reference=bool(prepared_reference))
-                    retry_audio, retry_duration = generate_once(model, voice_state, text)
-                    if retry_duration > duration:
-                        audio_np, duration = retry_audio, retry_duration
-                finally:
-                    model.eos_threshold = original_eos
+            original_eos = model.eos_threshold
+            try:
+                model.eos_threshold = FALLBACK_EOS
+                voice_state = make_voice_state(model, voice_source, is_reference=bool(prepared_reference))
+                retry_audio, retry_duration = generate_once(model, voice_state, text)
+                if retry_duration > duration:
+                    audio_np, duration = retry_audio, retry_duration
+            finally:
+                model.eos_threshold = original_eos
     finally:
         if prepared_reference and os.path.exists(prepared_reference):
             os.unlink(prepared_reference)

@@ -1,0 +1,31 @@
+name: Deploy VoxCPM2 Space
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'voxcpm2/**'
+      - '.github/workflows/deploy-voxcpm2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Hugging Face CLI
+        run: pip install -U huggingface_hub
+
+      - name: Deploy VoxCPM2 Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          hf upload Papdrone22/aster-voxcpm voxcpm2/app.py app.py --repo-type space --token "$HF_TOKEN"
+          hf upload Papdrone22/aster-voxcpm voxcpm2/requirements.txt requirements.txt --repo-type space --token "$HF_TOKEN"
+          hf upload Papdrone22/aster-voxcpm voxcpm2/README.md README.md --repo-type space --token "$HF_TOKEN"

@@ -27,7 +27,7 @@ def _clean_control(control: str) -> str:
     return re.sub(r"[()（）]", "", (control or "")).strip()
 
 
-@spaces.GPU(duration=120)
+@spaces.GPU(duration=60)
 def generate(
     text,
     reference_audio,

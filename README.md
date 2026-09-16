@@ -1,9 +1,17 @@
-# Aster Voice API
+---
+title: Aster Pocket TTS
+emoji: 🎙️
+colorFrom: indigo
+colorTo: blue
+sdk: gradio
+sdk_version: 6.27.0
+app_file: app.py
+python_version: 3.12
+pinned: false
+---
 
-Isolated Render experiment for Pocket TTS Indonesian 6L. This repository is separate from the main Aster application.
+# Aster Pocket TTS
 
-Endpoints:
-- `GET /health`
-- `POST /tts` with JSON `{ "text": "Selamat pagi" }`
+Pocket TTS Bahasa Indonesia menggunakan model `anak10thn/pocket-tts-indonesian` 6-layer dengan dukungan voice cloning dari reference audio.
 
-The model is loaded lazily on the first `/tts` request so the service can boot before model inference is tested.
+Gradio API utama: `/generate`

@@ -1,5 +1,4 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 pocket-tts
-fastapi
-uvicorn
-numpy
+scipy
+gradio>=6.27,<7
